@@ -6,10 +6,13 @@ import com.tg.estoque_saas.repository.VendaRepository;
 import com.tg.estoque_saas.service.ProdutoService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/vendas")
@@ -17,18 +20,19 @@ import java.util.List;
 public class VendaController {
 
     @Autowired
-    private ProdutoService produtoService; // Injetando o serviço
-    
+    private ProdutoService produtoService;
+
     @Autowired
     private VendaRepository repository;
 
+    @GetMapping
     public List<Venda> listarTodas() {
         return repository.findAll();
     }
 
     @PostMapping
     public Venda registrarVenda(@RequestBody VendaRequest request) {
-        // Se a data vier nula no JSON, usamos o 'agora'
+        // Se a data vier nula no JSON, usa o 'agora'
         LocalDateTime dataFinal = (request.getDataVenda() == null)
                 ? LocalDateTime.now()
                 : request.getDataVenda();
@@ -46,6 +50,17 @@ public class VendaController {
     @GetMapping("/produto/{produtoId}")
     public List<Venda> listarPorProduto(@PathVariable Long produtoId) {
         return produtoService.listarVendasPorProduto(produtoId);
+    }
+
+    // Cancelar venda
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelarVenda(@PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean reporEstoque) {
+        // Chama a lógica do Service
+        produtoService.cancelarVenda(id, reporEstoque);
+
+        // Retorna 204 No Content ("Deletado com sucesso")
+        return ResponseEntity.noContent().build();
     }
 
 }
