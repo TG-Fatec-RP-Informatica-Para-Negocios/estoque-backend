@@ -63,3 +63,13 @@ O backend foi construído utilizando **Java 21** e **Spring Boot 4.0.2**, seguin
 - [x] Arquitetura Base (Spring Boot + JPA)
 - [x] CRUD de Produtos
 - [x] Registro de Vendas (Lógica de Histórico vs. Tempo Real)
+- [ ] Implementação do Cálculo de Desvio Padrão ($\sigma$)
+- [ ] Implementação da Fórmula de Ponto de Pedido ($PP = (Dm \times L) + ES$)
+- [ ] Dashboard de Alertas
+
+---
+
+### Autor
+
+**Lucas Grabalos de Souza**
+*Estudante de Informática para Negócios - FATEC Rio Preto*
