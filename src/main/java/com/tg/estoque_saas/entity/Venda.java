@@ -2,7 +2,6 @@ package com.tg.estoque_saas.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity

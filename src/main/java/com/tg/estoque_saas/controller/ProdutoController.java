@@ -1,7 +1,6 @@
 package com.tg.estoque_saas.controller;
 
 import com.tg.estoque_saas.entity.Produto;
-import com.tg.estoque_saas.repository.ProdutoRepository;
 import com.tg.estoque_saas.service.ProdutoService;
 
 import org.springframework.beans.factory.annotation.Autowired;
