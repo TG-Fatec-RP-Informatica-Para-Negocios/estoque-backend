@@ -20,19 +20,20 @@ public class ProdutoService {
     @Autowired
     private VendaRepository vendaRepository;
 
-    // --- MÉTODOS BÁSICOS DE PRODUTO (QUE FALTAVAM) ---
+    // Conectando o nosso motor matemático!
+    @Autowired
+    private CalculoEstoqueService calculoEstoqueService;
+
+    // --- MÉTODOS BÁSICOS DE PRODUTO ---
     
-    // Listar todos os produtos
     public List<Produto> listarTodos() {
         return produtoRepository.findAll();
     }
 
-    // Buscar produto por ID
     public Produto buscarPorId(Long id) {
         return produtoRepository.findById(id).orElse(null);
     }
 
-    // Salvar/Cadastrar Produto
     @Transactional
     public Produto salvar(Produto produto) {
         return produtoRepository.save(produto);
@@ -40,19 +41,16 @@ public class ProdutoService {
 
     // --- MÉTODOS DE VENDAS E ESTATÍSTICAS ---
 
-    // Listar todas as vendas (geral)
     public List<Venda> listarTodasVendas() {
         return vendaRepository.findAll();
     }
 
-    // Registrar uma venda (com lógica de estoque)
     @Transactional
     public Venda registrarVenda(Long produtoId, Integer quantidade, LocalDateTime data, boolean vendaAntiga) {
         Produto produto = produtoRepository.findById(produtoId)
                 .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
 
         if (!vendaAntiga) {
-            // Se for venda atual, valida e baixa estoque
             if (produto.getEstoqueAtual() < quantidade) {
                 throw new RuntimeException("Estoque insuficiente!");
             }
@@ -64,20 +62,35 @@ public class ProdutoService {
 
         Venda venda = new Venda();
         venda.setProduto(produto);
-        venda.setQuantidade(quantidade);
-        venda.setDataVenda(data);
+        venda.setQuantidadeVendida(quantidade); 
+        venda.setDataVenda(data.toLocalDate()); 
 
-        return vendaRepository.save(venda);
+        // Salva a venda no banco de dados
+        vendaRepository.save(venda);
+        
+        // 1. Busca todo o histórico de vendas desse produto
+        List<Venda> historicoCompleto = vendaRepository.findByProdutoId(produtoId);
+        
+        // 2. Extrai só os números (as quantidades vendidas) para a matemática
+        List<Integer> quantidadesVendidas = historicoCompleto.stream()
+                .map(Venda::getQuantidadeVendida)
+                .toList();
+                
+        // 3. Roda a fórmula de Slack e Ballou para atualizar o Ponto de Pedido e Estoque de Segurança
+        calculoEstoqueService.calcularParametrosDeRessuprimento(produto, quantidadesVendidas);
+        
+        // 4. Salva o produto de novo com os indicadores matemáticos
+        produtoRepository.save(produto);
+
+        return venda;
     }
 
-    // Listar vendas de um produto específico
     public List<Venda> listarVendasPorProduto(Long produtoId) {
         return vendaRepository.findByProdutoId(produtoId);
     }
 
     // --- MÉTODOS DE EXCLUSÃO E SEGURANÇA ---
 
-    // Deletar Produto (Com trava de segurança)
     @Transactional
     public void deletarProduto(Long id){
         if (!produtoRepository.existsById(id)) {
@@ -93,7 +106,6 @@ public class ProdutoService {
         produtoRepository.deleteById(id);
     }
 
-    // Cancelar Venda (Com opção de estorno)
     @Transactional
     public void cancelarVenda(Long vendaId, boolean reporEstoque) {
         Venda venda = vendaRepository.findById(vendaId)
@@ -101,7 +113,7 @@ public class ProdutoService {
 
         if (reporEstoque) {
             Produto produto = venda.getProduto();
-            produto.setEstoqueAtual(produto.getEstoqueAtual() + venda.getQuantidade());
+            produto.setEstoqueAtual(produto.getEstoqueAtual() + venda.getQuantidadeVendida());
             produtoRepository.save(produto);
         }
 
